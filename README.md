@@ -12,6 +12,6 @@ Want to collaborate? Would **[love](mailto:mpayson@esri.com)** to hear from you.
 
 ### Muster
 
-> Ensuring your colleagues safety with locationn intelligence. Read [more](/muster) and see it [live]()
+> Ensuring your colleagues safety with location intelligence. Read **[more](/muster)** and see it **[live](https://mpayson.github.io/esri-se-demos/muster/index.html)**
 
 ![muster screenshot](/images/muster.png)
