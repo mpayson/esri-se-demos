@@ -39,7 +39,7 @@
       display: none !important;
     }
   </style>
-  <script type="text/javascript" src="mockdata.js"></script>
+  <!-- <script type="text/javascript" src="mockdata.js"></script> -->
   <script>
     require([
       "esri/views/MapView",
@@ -51,6 +51,77 @@
       "dojo/domReady!"
     ], function( MapView, WebMap, domClass, html, on, dom) {
       
+      const MOCKUSERS = {
+        "1": "Max",
+        "2": "Dan",
+        "3": "Chad",
+        "4": "Ian",
+        "5": "Jack"
+      }
+
+      const MOCKDATA = {
+        "1": [
+            {"sector": "2"},
+            {"device": "13"},
+            {"device": "13"},
+            {"device": "1"},
+            {"device": "13"},
+            {"device": "12"},
+            {"sector": "3"},
+            {"device": "26"},
+            {"device": "25"},
+            {"device": "106"}
+        ],
+        "2": [
+            {"sector": "5"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"},
+            {"device": "41"}
+        ],
+        "3": [
+            {"sector": "4"},
+            {"device": "34"},
+            {"device": "34"},
+            {"device": "34"},
+            {"device": "36"},
+            {"device": "36"},
+            {"device": "36"},
+            {"device": "36"},
+            {"device": "37"},
+            {"device": "101"}
+        ],
+        "4": [
+            {"sector": "4"},
+            {"device": "36"},
+            {"device": "36"},
+            {"sector": "5"},
+            {"device": "45"},
+            {"device": "45"},
+            {"device": "45"},
+            {"device": "102"},
+            {"device": "102"},
+            {"device": "102"}
+        ],
+        "5": [
+            {"sector": "3"},
+            {"device": "27"},
+            {"device": "30"},
+            {"device": "29"},
+            {"device": "29"},
+            {"device": "29"},
+            {"device": "29"},
+            {"device": "29"},
+            {"device": "26"},
+            {"device": "106"}
+        ]
+      }
+
       const GATEWAYURL = "http://startupsges.bd.esri.com:6280/geoevent/rest/receiver/gateway-person-in";
       const SECTORURL = "http://startupsges.bd.esri.com:6280/geoevent/rest/receiver/sector-person-in";
       const RECDELURL = "https://services8.arcgis.com/sPVdBYLweERVoLno/ArcGIS/rest/services/muster_people_b1dac156c6704ad096f43a4d33fa740d/FeatureServer/0/deleteFeatures";
