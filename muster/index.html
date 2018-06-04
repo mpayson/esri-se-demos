@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Muster Demo</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.7/esri/css/main.css">
+  <link rel="stylesheet" href="https://s3-us-west-1.amazonaws.com/patterns.esri.com/files/calcite-web/1.0.0-rc.8/css/calcite-web.min.css">
+
+  <script>
+    var dojoConfig = {
+      has: {
+        // WebGL (BETA) is cool, let's use by default
+        "esri-featurelayer-webgl": 1
+      }
+    };
+  </script>
+  
+  <script src="https://js.arcgis.com/4.7/"></script>
+  <style>
+    html,
+    body,
+    #streamNode {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    .nav-btn{
+      border: 0px;
+    }
+    .nav-text{
+      padding-top: 1.1625rem;
+      padding-bottom: calc(1.1625rem - 4px);
+      margin: 0;
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+  <script type="text/javascript" src="mockdata.js"></script>
+  <script>
+    require([
+      "esri/views/MapView",
+      "esri/WebMap",
+      "dojo/dom-class",
+      "dojo/html",
+      "dojo/on",
+      "dojo/dom",
+      "dojo/domReady!"
+    ], function( MapView, WebMap, domClass, html, on, dom) {
+      
+      const GATEWAYURL = "http://startupsges.bd.esri.com:6280/geoevent/rest/receiver/gateway-person-in";
+      const SECTORURL = "http://startupsges.bd.esri.com:6280/geoevent/rest/receiver/sector-person-in";
+      const RECDELURL = "https://services8.arcgis.com/sPVdBYLweERVoLno/ArcGIS/rest/services/muster_people_b1dac156c6704ad096f43a4d33fa740d/FeatureServer/0/deleteFeatures";
+      const PEOPLEDELURL = "https://services8.arcgis.com/sPVdBYLweERVoLno/ArcGIS/rest/services/muster_people/FeatureServer/0/deleteFeatures";
+      const MOCKTIMEDELAY = 300
+      const STEPDELAY = 4000
+      
+      const uids = Object.keys(MOCKUSERS);
+      const maxIters = Math.max(...Object.keys(MOCKDATA).map(k => MOCKDATA[k].length));
+
+      const streamNode = dom.byId("streamNode");
+      const boardNode = dom.byId("boardNode");
+      const appNode = dom.byId("appNode");
+      const playNode = dom.byId("playBtn");
+      const streamBtn = dom.byId("streamBtn");
+      const boardBtn = dom.byId("boardBtn");
+      const appBtn = dom.byId("appBtn");
+      const stepNode = dom.byId("stepText");
+
+      let state = {
+        activeNode: streamNode,
+        activeBtn: streamBtn,
+        running: false,
+        step: 0
+      } 
+
+      const getStepText = step => `Step: ${step}/${maxIters}`;
+      html.set(stepNode, getStepText(0));
+
+      const delRecords = (url) => {
+        delParams = {"where": "1=1", "f": "json"};
+        const urlParams = Object.keys(delParams).map((key) => {
+          return encodeURIComponent(key) + '=' + encodeURIComponent(delParams[key]);
+        }).join('&');
+        
+        const postUrl = `${url}?${urlParams}`
+
+        fetch(postUrl, {
+          method: 'POST'
+        }).then(res => console.log(res))
+        .catch(err => console.log(err));
+      }
+
+      const postUpdate = (json, url) => {
+        fetch(url, {
+          method: 'POST',
+          body: JSON.stringify(json),
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => console.log(res))
+        .catch(err => console.log(err));
+      }
+
+      const getTimestamp = (step) => {
+        let dt = new Date(2018, 6, 4, 10, 14, 0);
+        dt.setSeconds( dt.getSeconds() + MOCKTIMEDELAY );
+        return dt;
+      }
+
+      const getGatewayData = (userid, username, deviceid, step, signal=null) => {
+        signal = signal ? signal : Math.ceil(Math.random() * 3);
+        timestamp = getTimestamp(step);
+        return {
+          eventtime: timestamp,
+          userid: userid,
+          username: username,
+          deviceid: deviceid,
+          signalstrength: signal
+        }
+      }
+
+      const getSectorData = (userid, username, sectorid, step) => {
+        timestamp = getTimestamp(step);
+        return {
+          eventtime: timestamp,
+          userid: userid,
+          username: username,
+          sectorid: sectorid
+        }
+      }
+
+      const setRun = (isRun) => {
+        state.running = isRun;
+        if(isRun){
+          domClass.remove(playNode, "icon-ui-play");
+          domClass.add(playNode, "icon-ui-pause");
+          run(state.step);
+        }
+        else {
+          domClass.remove(playNode, "icon-ui-pause");
+          domClass.add(playNode, "icon-ui-play");
+        }
+      }
+
+      const run = (step) => {
+        state.step = step;
+        html.set(stepNode, getStepText(step));
+        if(state.running && step < maxIters){
+          uids.forEach(uid => {
+            if(!MOCKDATA.hasOwnProperty(uid) || step >= MOCKDATA[uid].length){
+              return;
+            }
+            const stepData = MOCKDATA[uid][step];
+            const username = MOCKUSERS[uid];
+            if (stepData.hasOwnProperty('sector')){
+              const sector = stepData['sector'];
+              const data = getSectorData(uid, username, sector, step);
+              console.log(data);
+              postUpdate(data, SECTORURL);
+            }
+            if (stepData.hasOwnProperty('device')){
+              const deviceid = stepData['device'];
+              const data = getGatewayData(uid, username, deviceid, step);
+              console.log(data);
+              postUpdate(data, GATEWAYURL);
+            }
+          })
+          setTimeout(() => run(step+1), STEPDELAY)
+        } else {
+          setRun(false);
+        }
+      }
+
+      const setNode = (node, btn) => {
+        domClass.add(state.activeNode, "hidden");
+        domClass.remove(state.activeBtn, "text-blue");
+        domClass.remove(node, "hidden");
+        domClass.add(btn, "text-blue");
+        state.activeNode = node;
+        state.activeBtn = btn;
+      }
+
+      var webmap = new WebMap({
+        portalItem: {
+          id: "5ea7dc2bd7b64810a42dcc347d5e59bc"
+        }
+      });
+
+      var view = new MapView({
+        map: webmap,
+        container: "streamNode"
+      });
+      
+      on(streamBtn, "click", () => setNode(streamNode, streamBtn));
+      on(boardBtn, "click", () => setNode(boardNode, boardBtn));
+      on(appBtn, "click", () => setNode(appNode, appBtn));
+
+      on(dom.byId("playBtn"), "click", () => {
+        setRun(!state.running);
+      });
+      on(dom.byId("refreshBtn"), "click", () => {
+        // console.log("HERE");
+        setRun(false);
+        delRecords(RECDELURL);
+        delRecords(PEOPLEDELURL);
+        state.step = 0;
+        html.set(stepNode, getStepText(0));
+      })
+
+    });
+  </script>
+</head>
+
+<body>
+  <header class="top-nav fade-in">
+    <div class="grid-container">
+      <div class="column-24">
+      <div class="tablet-hide">
+          <a href="#" class="top-nav-title">Muster Demo</a>
+          <nav class="top-nav-list" role="navigation" aria-labelledby="topnav">
+          <!-- <a class="top-nav-link" href="#">Dashboard</a> -->
+            <button id="streamBtn" class="top-nav-link nav-btn icon-ui-flush font-size-2 icon-ui-collapse text-blue"></button>
+            <button id="boardBtn" class="top-nav-link icon-ui-flush icon-ui-dashboard font-size-2 nav-btn"></button>
+            <button id="appBtn" class="top-nav-link icon-ui-flush icon-ui-applications font-size-2 nav-btn"></button>
+          </nav>
+
+          <nav class="class-top-nav-list right" role="navigation" aria-labelledby="usernav">
+            <button id="playBtn" class="top-nav-link nav-btn icon-ui-flush font-size-2 icon-ui-play"></button>
+            <button id="refreshBtn" class="top-nav-link nav-btn icon-ui-flush font-size-2 icon-ui-refresh"></button>
+            <p id="stepText" class="left nav-text"></p>
+            <!-- <a class="top-nav-link icon-ui-user margin-left-1" href="#">Sign In</a> -->
+          </nav>
+      </div>
+    </div>
+    </div>
+  </header>
+  <iframe class="hidden" id="boardNode" width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://spatial-startups.maps.arcgis.com/apps/opsdashboard/index.html#/83b08075081f4506a9106ecd8731ff8c"></iframe>
+  <iframe class="hidden" id="appNode" width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://spatial-startups.maps.arcgis.com/apps/webappviewer/index.html?id=cc00f6dd0ea446dc8cd368f682b608e7"></iframe>
+  <div id="streamNode"></div>
+</body>
+
+</html>
